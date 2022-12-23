@@ -1,0 +1,39 @@
+version: "3.9"
+services:
+    phonebook-andrey-node:
+        build:
+            context: docker/development/node
+        environment:
+            WDS_SOCKET_PORT: 0
+            NODE_ENV: development
+            REACT_APP_API_URL: http://api.localhost/api/v1/
+        volumes:
+            - ./:/app:rw
+        command: sh -c "until [ -f .ready ] ; do sleep 1 ; done && yarn start"
+        tty: true
+        networks:
+            - traefik-public
+
+    phonebook-andrey-node-cli:
+        build:
+            context: docker/development/node
+        volumes:
+            - ./:/app
+        networks:
+            - traefik-public
+
+    phonebook-andrey-front:
+        build:
+            context: docker/development/nginx
+        networks:
+            - traefik-public
+        labels:
+            - traefik.enable=true
+            - traefik.docker.network=traefik-public
+            - traefik.http.routers.andrey-phonebook.entrypoints=http
+            - traefik.http.routers.andrey-phonebook.rule=Host(`andrey.pb.localhost`) || Host(`andrey.phonebook.localhost`)
+            - traefik.http.services.andrey-phonebook.loadBalancer.server.port=80
+
+networks:
+    traefik-public:
+        external: true
